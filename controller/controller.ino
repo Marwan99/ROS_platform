@@ -1,13 +1,11 @@
 #include <ros.h>
 #include <std_msgs/Int16.h>
+#include <std_msgs/Float32.h>
 
 ros::NodeHandle  nh;
 
 std_msgs::Int16 left;
 std_msgs::Int16 right;
-
-ros::Publisher lwheel("lwheel", &left);
-ros::Publisher rwheel("rwheel", &right);
 
 /*Circuit connections:
   -Motor red   --> OUT1 H-bridge
@@ -23,6 +21,9 @@ const byte R_encoderPinA = 2;
 const byte R_encoderPinB = 3;
 const byte L_encoderPinA = 18;
 const byte L_encoderPinB = 19;
+
+const byte r_motor = 9;
+const byte l_motor = 10;
 
 volatile long R_pulse_count;
 volatile long L_pulse_count;
@@ -63,19 +64,37 @@ void L_encoderB_ISR()
     (digitalRead(L_encoderPinA) == LOW) ? L_pulse_count++ : L_pulse_count--;
 }
 
+//======================ROS===========================
+void l_messageCb(const std_msgs::Float32& l_cmd){
+  analogWrite(l_motor, int(l_cmd.data));
+}
+
+void r_messageCb(const std_msgs::Float32& r_cmd){
+  analogWrite(r_motor, int(r_cmd.data));
+}
+
+ros::Subscriber<std_msgs::Float32> l_sub("l_motor_cmd", &l_messageCb );
+ros::Subscriber<std_msgs::Float32> r_sub("r_motor_cmd", &r_messageCb );
+
+ros::Publisher lwheel("lwheel", &left);
+ros::Publisher rwheel("rwheel", &right);
+
 
 void setup()
 {
   nh.initNode();
-  nh.advertise(left);
-  nh.advertise(right);
-  
-  Serial.begin(115200);
+  nh.advertise(lwheel);
+  nh.advertise(rwheel);
+  nh.subscribe(l_sub);
+  nh.subscribe(r_sub); 
 
   pinMode(R_encoderPinA, INPUT_PULLUP);
   pinMode(R_encoderPinA, INPUT_PULLUP);
   pinMode(L_encoderPinB, INPUT_PULLUP);
   pinMode(L_encoderPinB, INPUT_PULLUP);
+
+  pinMode(r_motor, OUTPUT);
+  pinMode(l_motor, OUTPUT);
 
   attachInterrupt(digitalPinToInterrupt(R_encoderPinA), R_encoderA_ISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(R_encoderPinB), R_encoderB_ISR, CHANGE);
@@ -85,8 +104,10 @@ void setup()
 
 void loop()
 {
-  left.publish(&left);
-  right.publish(&right);
-  nh.spinOnce();
-  delay(100);
+    left.data = L_pulse_count;
+    right.data = R_pulse_count;
+    lwheel.publish(&left);
+    rwheel.publish(&right);
+    nh.spinOnce();
+    delay(10);
 }

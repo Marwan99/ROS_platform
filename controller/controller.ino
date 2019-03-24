@@ -52,78 +52,10 @@ void L_encoderB_ISR()
     (digitalRead(L_encoderPinA) == LOW) ? L_pulse_count++ : L_pulse_count--;
 }
 
-struct motor 
-{
-  byte flip = 1; //Set the direction
-  
-  byte signalA = 9;
-  byte signalB = 10;
-  
-  int actuation_signal;
-  double Kp = 1.6; //2.1
-  double ki = 5; //4
-  double kd = 0.01;
-  double error;
-  double prev_error;
-  double integral;
-  double derivative;
-  double speed_reading;
-  long prev_pulse_count;
-
-  void initialize(byte a, byte b, byte c)
-  {
-    signalA = a;
-    signalB = b;
-    flip = c;
-    
-    pinMode(signalA, OUTPUT);
-    pinMode(signalB, OUTPUT);
-
-    Serial.println("Motor initialized");
-  }
-
-  void pid(int set_point, long pulse_count)
-  {
-    speed_reading = ((prev_pulse_count - pulse_count) / 0.02) / 34.02; //motor shaft RPM
-    Serial.println(speed_reading);
-    prev_pulse_count = pulse_count;
-
-    error = set_point - speed_reading;
-
-    integral += (error) * 0.02;
-    derivative = (error - prev_error) / 0.02;
-    actuation_signal = (Kp * error) + (ki * integral) + (kd * derivative);
-
-    prev_error = error;
-
-    if (actuation_signal > 0)
-    {
-      analogWrite(signalA, (actuation_signal < 255) ? actuation_signal : 255);
-      digitalWrite(signalB, LOW);
-    }
-    else if (actuation_signal < 0)
-    {
-      actuation_signal = abs(actuation_signal);
-      analogWrite(signalA, (actuation_signal < 255) ? actuation_signal : 255);
-      digitalWrite(signalB, LOW);
-    }
-    else
-    {
-      digitalWrite(signalA, LOW);
-      digitalWrite(signalB, LOW);
-    }
-  }
-};
-
-motor motor_R;
-motor motor_L;
 
 void setup()
 {
   Serial.begin(115200);
-
-  motor_R.initialize(9, 10, 1);
-  motor_L.initialize(11, 12, 1);
 
   pinMode(R_encoderPinA, INPUT_PULLUP);
   pinMode(R_encoderPinA, INPUT_PULLUP);
@@ -139,10 +71,4 @@ void setup()
 void loop()
 {
   
-  if (millis() - prev_millis > 20)
-  {
-    prev_millis = millis();
-    motor_R.pid(100, R_pulse_count);
-    motor_L.pid(100, L_pulse_count);
-  }
 }

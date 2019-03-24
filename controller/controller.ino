@@ -1,3 +1,14 @@
+#include <ros.h>
+#include <std_msgs/Int16.h>
+
+ros::NodeHandle  nh;
+
+std_msgs::Int16 left;
+std_msgs::Int16 right;
+
+ros::Publisher lwheel("lwheel", &left);
+ros::Publisher rwheel("rwheel", &right);
+
 /*Circuit connections:
   -Motor red   --> OUT1 H-bridge
   -Motor white --> OUT2 H-bridge
@@ -55,6 +66,10 @@ void L_encoderB_ISR()
 
 void setup()
 {
+  nh.initNode();
+  nh.advertise(left);
+  nh.advertise(right);
+  
   Serial.begin(115200);
 
   pinMode(R_encoderPinA, INPUT_PULLUP);
@@ -70,5 +85,8 @@ void setup()
 
 void loop()
 {
-  
+  left.publish(&left);
+  right.publish(&right);
+  nh.spinOnce();
+  delay(100);
 }

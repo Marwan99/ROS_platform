@@ -33,6 +33,10 @@ const byte L_encoderPinB = 19;
 const byte r_motor_fwd = 9;
 const byte r_motor_bck = 10;
 
+const byte l_motor_fwd = 11;
+const byte l_motor_bck = 12;
+
+
 volatile long R_pulse_count;
 volatile long L_pulse_count;
 
@@ -73,9 +77,17 @@ void L_encoderB_ISR()
 }
 
 //======================ROS===========================
-//void l_messageCb(const std_msgs::Float32& l_cmd){
-//  analogWrite(l_motor, int(l_cmd.data));
-//}
+void l_messageCb(const std_msgs::Float32& l_cmd){
+  if(l_cmd.data > 0){
+    analogWrite(l_motor_fwd, abs(int(l_cmd.data)));
+    analogWrite(l_motor_bck, 0);
+  }
+    
+  else{  
+    analogWrite(l_motor_bck, abs(int(l_cmd.data)));
+    analogWrite(l_motor_fwd, 0);
+  }
+}
 
 void r_messageCb(const std_msgs::Float32& r_cmd){
   if(r_cmd.data > 0){
@@ -89,7 +101,7 @@ void r_messageCb(const std_msgs::Float32& r_cmd){
   } 
 }
 
-//ros::Subscriber<std_msgs::Float32> l_sub("l_motor_cmd", &l_messageCb );
+ros::Subscriber<std_msgs::Float32> l_sub("l_motor_cmd", &l_messageCb );
 ros::Subscriber<std_msgs::Float32> r_sub("r_motor_cmd", &r_messageCb );
 
 ros::Publisher lwheel("lwheel", &left);
@@ -101,7 +113,7 @@ void setup()
   nh.initNode();
   nh.advertise(lwheel);
   nh.advertise(rwheel);
-//  nh.subscribe(l_sub);
+  nh.subscribe(l_sub);
   nh.subscribe(r_sub); 
 
   pinMode(R_encoderPinA, INPUT_PULLUP);
@@ -111,7 +123,9 @@ void setup()
 
   pinMode(r_motor_fwd, OUTPUT);
   pinMode(r_motor_bck, OUTPUT);
-//  pinMode(l_motor, OUTPUT);
+  pinMode(l_motor_fwd, OUTPUT);
+  pinMode(l_motor_bck, OUTPUT);
+  
 
   attachInterrupt(digitalPinToInterrupt(R_encoderPinA), R_encoderA_ISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(R_encoderPinB), R_encoderB_ISR, CHANGE);

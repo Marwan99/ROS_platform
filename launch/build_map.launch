@@ -1,0 +1,27 @@
+<launch>
+  <master auto="start"/>
+
+  <include file="$(find openni_launch)/launch/openni.launch"/>
+
+  <node pkg="depthimage_to_laserscan" type="depthimage_to_laserscan" name="depthimage_to_laserscan">
+      <remap from="camera_info" to="/camera/depth/camera_info"/>
+      <remap from="image" to="/camera/depth/image"/>
+  </node>
+
+  <node pkg="tf" type="static_transform_publisher" args="0.1 0 0 0 0 0 map odom 100" name="tf_1" />
+  <node pkg="tf" type="static_transform_publisher" args="0.1 0 0 0 0 0 odom base_link 100" name="tf_3" />
+  <node pkg="tf" type="static_transform_publisher" args="0.1 0 0 0 0 0 base_link camera_link 100" name="tf_2" />
+
+  <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" name="teleop_node"  output="screen"/>
+
+  <node pkg="rosserial_python" type="serial_node.py" args="/dev/ttyACM0" name="rosserial_node" output="screen"/>
+
+  <node pkg="gmapping" name="slam_gmapping" type="slam_gmapping" output="screen">
+    <remap from="scan" to="/scan"/>
+  </node>
+
+  <!--Add odometry publishing node-->
+
+  <node pkg="rviz" type="rviz" name="rviz"/>
+
+</launch>

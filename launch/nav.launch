@@ -1,0 +1,32 @@
+<launch>
+  <master auto="start"/>
+
+  <!-- Map server -->
+  <arg name="map_file" default="$(find kinect_bot)/maps/test_map.yaml"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+
+  <node pkg="tf" type="static_transform_publisher" args="0.1 0 0 0 0 0 odom base_link 100" name="tf_1" />
+  <node pkg="tf" type="static_transform_publisher" args="0.1 0 0 0 0 0 base_link camera_link 100" name="tf_2" />
+
+  <!--Add odometry publishing node-->
+
+  <node pkg="rosserial_python" type="serial_node.py" args="/dev/ttyACM0" name="rosserial_node" output="screen"/
+
+  <!-- Localization -->
+  <node pkg="amcl" type="amcl" name="amcl" output="screen"/>
+
+  <!-- Move base -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam file="$(find kinect_bot)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find kinect_bot)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find kinect_bot)/config/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find kinect_bot)/config/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find kinect_bot)/config/base_local_planner_params.yaml" command="load" />
+
+    <param name="move_base/DWAPlannerROS/yaw_goal_tolerance" value="0.1"/>
+    <param name="move_base/DWAPlannerROS/xy_goal_tolerance" value="1"/>
+  </node>
+
+  <node pkg="rviz" type="rviz" name="rviz"/>
+
+</launch>

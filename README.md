@@ -1,1 +1,1 @@
-# ROS_platform
+# Kinect_bot

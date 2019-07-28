@@ -21,7 +21,30 @@
   </node>
 
   <!--Add odometry publishing node-->
+  <!--Insure that's working-->
+  <param name="ticks_meter" value="50"/>
+  <param name="base_width" value="0.245"/>
 
+  <node pkg="kinect_bot_drive" name="diff_tf" type="diff_tf.py" output="screen">
+    <param name="encoder_min" value="32768"/>
+    <param name="encoder_max" value="-32768"/>
+  </node>
+
+  <node pkg="kinect_bot_drive" name="l_pid_velocity" type="pid_velocity.py" output="screen">
+    <remap from="wheel" to="/lwheel"/>
+    <remap from="motor_cmd" to="/l_motor_cmd"/>
+    <remap from="wheel_vtarget" to="/lwheel_vtarget"/>
+  </node>
+
+  <node pkg="kinect_bot_drive" name="r_pid_velocity" type="pid_velocity.py" output="screen">
+    <remap from="wheel" to="/rwheel"/>
+    <remap from="motor_cmd" to="/r_motor_cmd"/>
+    <remap from="wheel_vtarget" to="/rwheel_vtarget"/>
+  </node>
+
+  <node pkg="kinect_bot_drive" name="twist_to_motors" type="twist_to_motors.py" output="screen">
+    <remap from="twist" to="/cmd_vel"/>
+  </node>
   <node pkg="rviz" type="rviz" name="rviz"/>
 
 </launch>

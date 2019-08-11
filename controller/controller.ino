@@ -17,7 +17,7 @@ std_msgs::Int16 right;
   ==========Left Motor===========
   -Motor yellow --> Arduino D19 (encoder phase A)
   -Motor green  --> Arduino D18 (encoder phase B)
-  
+
   ============Both================
   -Motor red   --> OUT1 H-bridge
   -Motor white --> OUT2 H-bridge
@@ -36,6 +36,7 @@ const byte r_motor_bck = 10;
 const byte l_motor_fwd = 11;
 const byte l_motor_bck = 12;
 
+const float wheel_circumference = 3.14*0.065; // in meters
 
 volatile long R_pulse_count;
 volatile long L_pulse_count;
@@ -76,33 +77,83 @@ void L_encoderB_ISR()
     (digitalRead(L_encoderPinA) == LOW) ? L_pulse_count++ : L_pulse_count--;
 }
 
+class Motor {
+  private:
+    long prev_pulse_count;
+    double previous_time=0, previous_error=0, integral=0, revolutions, dt,
+    actuation_signal, current_time, error, derivative, speed_reading, Kp, Ki, Kd;
+    const double pulses_per_revolution = 341.2;
+    const double millis_in_a_minute = 6000;
+    const int deadband = 0;
+    int out;
+
+  public:
+    Motor(double set_Kp, double set_Ki, double set_Kd) {
+      Kp = set_Kp;
+      Ki = set_Ki;
+      Kd = set_Kd;
+    }
+
+    int pid(int set_point, long pulse_count)
+    {
+      current_time = millis();
+      revolutions = ((pulse_count - prev_pulse_count) / pulses_per_revolution);
+      dt = (current_time - previous_time);
+
+      previous_time = current_time;
+      prev_pulse_count = pulse_count;
+
+      if(dt==0)
+        speed_reading=0;
+      else
+        speed_reading = revolutions/(dt/millis_in_a_minute); // Speed in RPM
+
+      error = set_point - speed_reading;
+
+      integral += ((error) * dt);
+      derivative = (error - previous_error) / dt;
+      actuation_signal = (Kp * error) + (Ki * integral) + (Kd * derivative);
+
+      previous_error = error;
+
+      if (actuation_signal > deadband) {
+        out = (actuation_signal < 255) ? actuation_signal : 255;
+        return out;
+      } else if (actuation_signal < -(deadband)) {
+        out = (actuation_signal > -255) ? actuation_signal : -255;
+        return out;
+      } else {
+        return 0;
+      } 
+    }
+};
+
+Motor left_motor(4, 0.1, 0);
+Motor right_motor(4, 0.1, 0);
+
+float left_target, right_target;
+
 //======================ROS===========================
 void l_messageCb(const std_msgs::Float32& l_cmd){
-  if(l_cmd.data > 0){
-    analogWrite(l_motor_fwd, abs(int(l_cmd.data)));
-    analogWrite(l_motor_bck, 0);
-  }
-    
-  else{  
-    analogWrite(l_motor_bck, abs(int(l_cmd.data)));
-    analogWrite(l_motor_fwd, 0);
-  }
+
+  /* The incoming message should be in m/s. However the PID controller controls
+    RPM, so a conversion is needed.
+  */
+
+  left_target = (l_cmd.data/wheel_circumference)*60;
 }
 
 void r_messageCb(const std_msgs::Float32& r_cmd){
-  if(r_cmd.data > 0){
-    analogWrite(r_motor_fwd, abs(int(r_cmd.data)));
-    analogWrite(r_motor_bck, 0);
-  }
-    
-  else{  
-    analogWrite(r_motor_bck, abs(int(r_cmd.data)));
-    analogWrite(r_motor_fwd, 0);
-  } 
+
+  /* The incoming message should be in m/s. However the PID controller controls
+    RPM, so a conversion is needed.
+  */
+
+  right_target = (r_cmd.data/wheel_circumference)*60;
 }
 
-ros::Subscriber<std_msgs::Float32> l_sub("l_motor_cmd", &l_messageCb );
-ros::Subscriber<std_msgs::Float32> r_sub("r_motor_cmd", &r_messageCb );
+ros::Subscriber<std_msgs::Float32> l_sub("lwheel_vtarget", &l_messageCb );
+ros::Subscriber<std_msgs::Float32> r_sub("rwheel_vtarget", &r_messageCb );
 
 ros::Publisher lwheel("lwheel", &left);
 ros::Publisher rwheel("rwheel", &right);
@@ -114,7 +165,7 @@ void setup()
   nh.advertise(lwheel);
   nh.advertise(rwheel);
   nh.subscribe(l_sub);
-  nh.subscribe(r_sub); 
+  nh.subscribe(r_sub);
 
   pinMode(R_encoderPinA, INPUT_PULLUP);
   pinMode(R_encoderPinA, INPUT_PULLUP);
@@ -125,7 +176,7 @@ void setup()
   pinMode(r_motor_bck, OUTPUT);
   pinMode(l_motor_fwd, OUTPUT);
   pinMode(l_motor_bck, OUTPUT);
-  
+
 
   attachInterrupt(digitalPinToInterrupt(R_encoderPinA), R_encoderA_ISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(R_encoderPinB), R_encoderB_ISR, CHANGE);
@@ -139,6 +190,23 @@ void loop()
     right.data = R_pulse_count;
     lwheel.publish(&left);
     rwheel.publish(&right);
+
+    if(left_target > 0){
+      analogWrite(l_motor_fwd, left_motor.pid(left_target, L_pulse_count));
+      analogWrite(l_motor_bck, 0);
+    } else {
+      analogWrite(l_motor_bck, abs(left_motor.pid(left_target, L_pulse_count)));
+      analogWrite(l_motor_fwd, 0);
+    }
+
+    if(right_target > 0){
+      analogWrite(r_motor_fwd, right_motor.pid(right_target, R_pulse_count));
+      analogWrite(r_motor_bck, 0);
+    } else {
+      analogWrite(r_motor_bck, abs(right_motor.pid(right_target, R_pulse_count)));
+      analogWrite(r_motor_fwd, 0);
+    }
+  
     nh.spinOnce();
-    delay(10);
+    delay(20);
 }

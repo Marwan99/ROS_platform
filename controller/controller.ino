@@ -84,7 +84,7 @@ class Motor {
     actuation_signal, current_time, error, derivative, speed_reading, Kp, Ki, Kd;
     const double pulses_per_revolution = 341.2;
     const double millis_in_a_minute = 6000;
-    const int deadband = 0;
+    const int deadband = 10;
     int out;
 
   public:
@@ -191,19 +191,22 @@ void loop()
     lwheel.publish(&left);
     rwheel.publish(&right);
 
-    if(left_target > 0){
-      analogWrite(l_motor_fwd, left_motor.pid(left_target, L_pulse_count));
+    int left_actuation_signal = left_motor.pid(left_target, L_pulse_count);
+    int right_actuation_signal = right_motor.pid(right_target, R_pulse_count);
+
+    if(left_target >= 0){
+      analogWrite(l_motor_fwd, left_actuation_signal);
       analogWrite(l_motor_bck, 0);
     } else {
-      analogWrite(l_motor_bck, abs(left_motor.pid(left_target, L_pulse_count)));
+      analogWrite(l_motor_bck, abs(left_actuation_signal));
       analogWrite(l_motor_fwd, 0);
     }
 
-    if(right_target > 0){
-      analogWrite(r_motor_fwd, right_motor.pid(right_target, R_pulse_count));
+    if(right_target >= 0){
+      analogWrite(r_motor_fwd, right_actuation_signal);
       analogWrite(r_motor_bck, 0);
     } else {
-      analogWrite(r_motor_bck, abs(right_motor.pid(right_target, R_pulse_count)));
+      analogWrite(r_motor_bck, abs(right_actuation_signal));
       analogWrite(r_motor_fwd, 0);
     }
   

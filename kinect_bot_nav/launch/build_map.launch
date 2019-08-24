@@ -30,19 +30,7 @@
     <param name="encoder_max" value="-32768"/>
   </node>
 
-  <node pkg="kinect_bot_drive" name="l_pid_velocity" type="pid_velocity.py" output="screen">
-    <remap from="wheel" to="/lwheel"/>
-    <remap from="motor_cmd" to="/l_motor_cmd"/>
-    <remap from="wheel_vtarget" to="/lwheel_vtarget"/>
-  </node>
-
-  <node pkg="kinect_bot_drive" name="r_pid_velocity" type="pid_velocity.py" output="screen">
-    <remap from="wheel" to="/rwheel"/>
-    <remap from="motor_cmd" to="/r_motor_cmd"/>
-    <remap from="wheel_vtarget" to="/rwheel_vtarget"/>
-  </node>
-
-  <node pkg="kinect_bot_drive" name="twist_to_motors" type="twist_to_motors.py" output="screen">
+  <node pkg="kinect_bot_drive" name="s" type="twist_to_motors.py" output="screen">
     <remap from="twist" to="/cmd_vel"/>
   </node>
   <node pkg="rviz" type="rviz" name="rviz"/>

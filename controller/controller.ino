@@ -7,6 +7,8 @@ ros::NodeHandle  nh;
 std_msgs::Int16 left;
 std_msgs::Int16 right;
 
+std_msgs::Float32 test;
+
 /*Circuit connections:
  * =========Right Motor==========
   -Motor yellow --> Arduino D2 (encoder phase A)
@@ -78,7 +80,7 @@ void L_encoderB_ISR()
 }
 
 class Motor {
-  private:
+  public:
     long prev_pulse_count;
     double previous_time=0, previous_error=0, integral=0, revolutions, dt,
     actuation_signal, current_time, error, derivative, speed_reading, Kp, Ki, Kd;
@@ -87,7 +89,7 @@ class Motor {
     const int deadband = 10;
     int out;
 
-  public:
+//  public:
     Motor(double set_Kp, double set_Ki, double set_Kd) {
       Kp = set_Kp;
       Ki = set_Ki;
@@ -157,6 +159,7 @@ ros::Subscriber<std_msgs::Float32> r_sub("rwheel_vtarget", &r_messageCb );
 
 ros::Publisher lwheel("lwheel", &left);
 ros::Publisher rwheel("rwheel", &right);
+ros::Publisher test_pub("test", &test);
 
 
 void setup()
@@ -164,6 +167,7 @@ void setup()
   nh.initNode();
   nh.advertise(lwheel);
   nh.advertise(rwheel);
+  nh.advertise(test_pub);
   nh.subscribe(l_sub);
   nh.subscribe(r_sub);
 
@@ -194,11 +198,14 @@ void loop()
     int left_actuation_signal = left_motor.pid(left_target, L_pulse_count);
     int right_actuation_signal = right_motor.pid(right_target, R_pulse_count);
 
+    test.data = left_actuation_signal;
+    test_pub.publish(&test);
+
     if(left_target >= 0){
       analogWrite(l_motor_fwd, left_actuation_signal);
       analogWrite(l_motor_bck, 0);
     } else {
-      analogWrite(l_motor_bck, abs(left_actuation_signal));
+      analogWrite(l_motor_bck, left_actuation_signal*-1);
       analogWrite(l_motor_fwd, 0);
     }
 
@@ -206,7 +213,7 @@ void loop()
       analogWrite(r_motor_fwd, right_actuation_signal);
       analogWrite(r_motor_bck, 0);
     } else {
-      analogWrite(r_motor_bck, abs(right_actuation_signal));
+      analogWrite(r_motor_bck, right_actuation_signal*-1);
       analogWrite(r_motor_fwd, 0);
     }
   

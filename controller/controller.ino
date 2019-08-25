@@ -1,11 +1,11 @@
 #include <ros.h>
-#include <std_msgs/Int16.h>
+#include <std_msgs/Int32.h>
 #include <std_msgs/Float32.h>
 
 ros::NodeHandle  nh;
 
-std_msgs::Int16 left;
-std_msgs::Int16 right;
+std_msgs::Int32 left;
+std_msgs::Int32 right;
 
 std_msgs::Float32 test;
 
@@ -40,8 +40,8 @@ const byte l_motor_bck = 12;
 
 const float wheel_circumference = 3.14*0.065; // in meters
 
-volatile long R_pulse_count;
-volatile long L_pulse_count;
+volatile int32_t R_pulse_count;
+volatile int32_t L_pulse_count;
 
 long prev_millis;
 

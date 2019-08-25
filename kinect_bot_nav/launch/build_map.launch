@@ -8,9 +8,9 @@
       <remap from="image" to="/camera/depth/image"/>
   </node>
 
-  <node pkg="tf" type="static_transform_publisher" args="0.1 0 0 0 0 0 map odom 100" name="tf_1" />
-  <node pkg="tf" type="static_transform_publisher" args="0.1 0 0 0 0 0 odom base_link 100" name="tf_3" />
-  <node pkg="tf" type="static_transform_publisher" args="0.1 0 0 0 0 0 base_link camera_link 100" name="tf_2" />
+  <!-- <node pkg="tf" type="static_transform_publisher" args="0.1 0 0 0 0 0 map odom 100" name="tf_1" /> -->
+  <!-- <node pkg="tf" type="static_transform_publisher" args="0.1 0 0 0 0 0 odom base_link 100" name="tf_3" /> -->
+  <node pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 base_link camera_link 100" name="tf_2" />
 
   <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" name="teleop_node"  output="screen"/>
 
@@ -22,15 +22,25 @@
 
   <!--Add odometry publishing node-->
   <!--Insure that's working-->
-  <param name="ticks_meter" value="50"/>
+  <!-- <param name="ticks_meter" value="50"/> -->
   <param name="base_width" value="0.245"/>
 
-  <node pkg="kinect_bot_drive" name="diff_tf" type="diff_tf.py" output="screen">
-    <param name="encoder_min" value="32768"/>
-    <param name="encoder_max" value="-32768"/>
+  <!-- <node pkg="kinect_bot_drive" name="diff_tf" type="diff_tf.py" output="screen">
+    <param name="encoder_min" value="-32768"/>
+    <param name="encoder_max" value="32767"/>
+    <param name="ticks_meter" value="341"/>
+    <param name="odom_frame_id" value="odom"/>
+  </node> -->
+
+  <node pkg="diff_drive" name="diff_drive_odometry" type="diff_drive_odometry" output="screen">
+    <param name="ticks_per_meter" value="6638"/>
+    <param name="wheel_separation" value="0.2"/>
+    <param name="odom_frame_id" value="odom"/>
+    <remap from="lwheel_ticks" to="/lwheel"/>
+    <remap from="rwheel_ticks" to="/rwheel"/>
   </node>
 
-  <node pkg="kinect_bot_drive" name="s" type="twist_to_motors.py" output="screen">
+  <node pkg="kinect_bot_drive" name="twist_to_motors" type="twist_to_motors.py" output="screen">
     <remap from="twist" to="/cmd_vel"/>
   </node>
   <node pkg="rviz" type="rviz" name="rviz"/>
